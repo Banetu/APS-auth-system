@@ -32,16 +32,14 @@ export async function GET(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     // Return default values with degraded status instead of error
-    return NextResponse.json(
-      {
-        contacts: 0,
-        join_requests: 0,
-        student_profiles: 0,
-        status: 'degraded',
-        message: `Database temporarily unavailable: ${errorMessage}`,
-        environment: process.env.NODE_ENV || 'unknown',
-      },
-      { status: 200 } // Return 200 OK to allow frontend to gracefully handle
-    );
+    // Always return 200 OK to prevent "Failed to fetch" errors in frontend
+    return NextResponse.json({
+      contacts: 0,
+      join_requests: 0,
+      student_profiles: 0,
+      status: 'degraded',
+      message: `Database temporarily unavailable: ${errorMessage}`,
+      environment: process.env.NODE_ENV || 'unknown',
+    });
   }
 }
