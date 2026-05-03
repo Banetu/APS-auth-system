@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
 			// Summary データを取得
 			const summaryResponse = await fetch(`${baseUrl}/api/v1/dashboard/summary`);
-			if (!summaryResponse.ok && summaryResponse.status !== 200) {
+			if (!summaryResponse.ok) {
 				const text = await summaryResponse.text();
 				throw new Error(`Failed to fetch summary: ${summaryResponse.status} ${text}`);
 			}
@@ -94,7 +94,7 @@ export default function DashboardPage() {
 
 			// Join Requests を取得
 			const joinResponse = await fetch(`${baseUrl}/api/v1/dashboard/join-requests`);
-			if (!joinResponse.ok && joinResponse.status !== 200) {
+			if (!joinResponse.ok) {
 				const text = await joinResponse.text();
 				throw new Error(`Failed to fetch join requests: ${joinResponse.status} ${text}`);
 			}
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
 			// Student Profiles を取得
 			const studentResponse = await fetch(`${baseUrl}/api/v1/dashboard/student-profiles`);
-			if (!studentResponse.ok && studentResponse.status !== 200) {
+			if (!studentResponse.ok) {
 				const text = await studentResponse.text();
 				throw new Error(`Failed to fetch student profiles: ${studentResponse.status} ${text}`);
 			}
@@ -116,7 +116,7 @@ export default function DashboardPage() {
 
 			// Contacts を取得
 			const contactResponse = await fetch(`${baseUrl}/api/v1/dashboard/contacts`);
-			if (!contactResponse.ok && contactResponse.status !== 200) {
+			if (!contactResponse.ok) {
 				const text = await contactResponse.text();
 				throw new Error(`Failed to fetch contacts: ${contactResponse.status} ${text}`);
 			}
