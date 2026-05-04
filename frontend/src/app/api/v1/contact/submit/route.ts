@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Brevo でメール送信
     try {
       const brevoApiKey = process.env.BREVO_API_KEY;
-      const senderEmail = process.env.SENDER_EMAIL || 'noreply@aoyamapiano.sakura.ne.jp';
+      const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@aoyamapiano.com';
 
       if (brevoApiKey) {
         await axios.post(

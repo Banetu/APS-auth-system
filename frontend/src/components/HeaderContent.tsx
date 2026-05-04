@@ -25,7 +25,7 @@ export default function HeaderContent() {
     <header className="w-full border-b border-black/10 bg-white/80 backdrop-blur dark:border-white/10 dark:bg-black/50">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" className="text-sm font-semibold tracking-wide">
-          AuthWebApp
+          Aoyama Piano Society
         </Link>
         <div className="flex items-center gap-2">
           {session?.user ? (

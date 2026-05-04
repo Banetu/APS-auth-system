@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AuthWebApp",
-  description: "メール認証とGoogle ログイン",
+  title: "Aoyama Piano Society",
+  description: "APSメンバー管理システム",
 };
 
 export default function RootLayout({

@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     const lineInviteUrl = process.env.LINE_INVITE_URL || process.env.NEXT_PUBLIC_LINE_INVITE_URL || '';
     const brevoApiKey = process.env.BREVO_API_KEY;
-    const senderEmail = process.env.SENDER_EMAIL || 'noreply@aoyamapiano.sakura.ne.jp';
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@aoyamapiano.com';
 
     if (brevoApiKey) {
       await fetch('https://api.brevo.com/v3/smtp/email', {

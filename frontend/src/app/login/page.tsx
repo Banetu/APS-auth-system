@@ -43,18 +43,7 @@ function LoginContent() {
 					</div>
 
 					{/* フッター */}
-					<div className="mt-6 text-center text-sm text-slate-600">
-						<p>
-							アカウントがない場合は、{" "}
-							<Link
-								href="/join/form"
-								className="font-semibold text-blue-600 hover:text-blue-700 underline"
-							>
-								入会申請
-							</Link>
-							{" "}してください。
-						</p>
-					</div>
+					
 				</div>
 			</section>
 		</main>
