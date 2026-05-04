@@ -65,23 +65,6 @@ export default function JoinGuidePage() {
 							</div>
 						</Link>
 					</div>
-
-					{/* 非会員向けセクション
-					<div className="bg-gradient-to-r from-slate-100 to-slate-50 rounded-2xl border border-slate-200 p-8 md:p-12">
-						<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-							<div className="space-y-3">
-								<h2 className="text-2xl font-bold text-slate-900">対象外の方へ</h2>
-								<p className="text-slate-600 leading-relaxed">
-									当サークルの入会対象外となられた方は、こちらをご確認ください。<br className="hidden md:block" />
-									その他ご分からな点がありましたら、お問い合わせフォームよりご連絡ください。
-								</p>
-							</div>
-                                <Link href="/non-member" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 hover:border-slate-400 transition-all whitespace-nowrap">
-                                	詳しく見る
-                                	<ChevronRight className="w-4 h-4" />
-                                </Link>
-						</div>
-					</div> */}
 				</div>
 			</section>
 		</main>
