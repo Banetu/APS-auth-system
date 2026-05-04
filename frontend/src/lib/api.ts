@@ -46,7 +46,10 @@ export async function sendOTPRequest(payload: JoinRequestPayload): Promise<{ id:
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error((data as { error?: string }).error || '送信に失敗しました');
+    const body = data as { error?: string; details?: string };
+    const detailText = body.details?.trim();
+    const message = body.error || '送信に失敗しました';
+    throw new Error(detailText ? `${message}: ${detailText}` : message);
   }
   const data = await res.json() as { joinRequestId?: string };
   return { id: String(data.joinRequestId ?? '') };
