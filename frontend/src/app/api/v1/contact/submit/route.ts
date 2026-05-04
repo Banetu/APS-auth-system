@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { randomUUID } from 'crypto';
-import { query, ensureTablesExist } from '@/lib/db';
+
+export const runtime = 'nodejs';
 
 interface ContactRequest {
   email: string;
@@ -26,17 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     // テーブルが存在することを確認
+    const { query, ensureTablesExist } = await import('@/lib/db');
     await ensureTablesExist();
-
-    // UUID を生成
-    const id = randomUUID();
 
     // データベースに保存
     const result = await query(
-      `INSERT INTO contacts (id, email, name, subject, affiliation, message)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO contacts (email, name, subject, affiliation, message)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, email, name, subject, affiliation, message, created_at`,
-      [id, email, name, subject || null, affiliation || null, message]
+      [email, name, subject || null, affiliation || null, message]
     );
 
     const contact = result.rows[0];

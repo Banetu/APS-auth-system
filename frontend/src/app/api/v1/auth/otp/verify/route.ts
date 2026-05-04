@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
-import {
-  ensureJoinRequestOtpsTableExists,
-  ensureJoinRequestsTableExists,
-  query,
-} from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
+    const {
+      ensureJoinRequestOtpsTableExists,
+      ensureJoinRequestsTableExists,
+      query,
+    } = await import('@/lib/db');
+
     const body = (await request.json()) as {
       joinRequestId?: string;
       otp?: string;

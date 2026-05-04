@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { Info, CheckCircle, FileText, AlertCircle } from "lucide-react";
-import OTPModal from "../../../../components/OTPModal";
 import NameInput from "../../../../components/forms/NameInput";
 import StudentNumberInput from "../../../../components/forms/StudentNumberInput";
-import { validateFullName, getDepartmentsFromStudentId } from "../../../../lib/validation";
-
-const STUDENT_ID_PATTERN = /^[1234S][A-Za-z0-9]{7}$/;
+import { validateFullName, getDepartmentsFromStudentId, validateStudentId } from "../../../../lib/validation";
+import { sendOTPRequest, verifyOTP } from "../../../../lib/api";
 
 function buildAoyamaEmail(studentId: string): string {
   const headMap: Record<string, string> = {
@@ -40,10 +38,13 @@ export default function AoyamaStudentFormPage() {
   const [schoolYear, setSchoolYear] = useState("");
   const [lineName, setLineName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [showOtp, setShowOtp] = useState(false);
-  const [otpEmail, setOtpEmail] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [formMetadata, setFormMetadata] = useState<Record<string, unknown> | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [joinRequestId, setJoinRequestId] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   // 学生番号が変更されたときに自動的に学部・学科を取得して設定
   useEffect(() => {
@@ -68,9 +69,12 @@ export default function AoyamaStudentFormPage() {
   }, [studentId]);
 
   const normalizedStudentId = useMemo(() => studentId.trim(), [studentId]);
-  const isStudentIdValid = STUDENT_ID_PATTERN.test(normalizedStudentId.toUpperCase());
+  const isStudentIdValid = validateStudentId(normalizedStudentId);
   const autoCompletedEmail = isStudentIdValid ? buildAoyamaEmail(normalizedStudentId) : "";
   const isNameValid = validateFullName(name);
+  // 半角スペースで姓名が区切られているかチェック
+  const nameHasHalfWidthSpace = name.trim().includes(' ');
+  const showNameSpaceWarning = name.trim().length >= 2 && !nameHasHalfWidthSpace;
 
   return (
     <main className="bg-slate-50 text-slate-900 font-sans min-h-screen">
@@ -112,7 +116,7 @@ export default function AoyamaStudentFormPage() {
                 {!isStudentIdValid && normalizedStudentId.length > 0 ? (
                   <p className="text-sm text-red-600 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    先頭が 1 / 2 / 3 / 4 / S で、全8文字の英数字で入力してください。
+                    先頭3文字が有効な学科コードの8文字で入力してください。
                   </p>
                 ) : (
                   <p className="text-sm text-slate-600 flex items-start gap-2">
@@ -128,11 +132,22 @@ export default function AoyamaStudentFormPage() {
                   氏名<span className="text-red-600">*</span>
                 </label>
                 <NameInput
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  className={`w-full px-4 py-3 border rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${showNameSpaceWarning ? 'border-amber-400 bg-amber-50' : 'border-slate-200'}`}
                   placeholder="例: 山田 太郎"
                   value={name}
                   onChange={(v) => setName(v)}
                 />
+                {showNameSpaceWarning ? (
+                  <p className="text-sm text-amber-600 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    姓と名の間を<strong>半角スペース</strong>で区切ってください（例: 山田 太郎）
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500 flex items-start gap-2">
+                    <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" />
+                    姓と名の間は<strong>半角スペース</strong>で区切ってください（例: 山田 太郎）
+                  </p>
+                )}
               </div>
 
               {/* フリガナ */}
@@ -253,8 +268,8 @@ export default function AoyamaStudentFormPage() {
                 <button
                   type="button"
                   className="w-full px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!isNameValid || !isStudentIdValid || !autoCompletedEmail || !furigana || !faculty || !department || !schoolYear || !lineName || !phoneNumber}
-                  onClick={() => {
+                  disabled={!isNameValid || !isStudentIdValid || !autoCompletedEmail || !furigana || !faculty || !department || !schoolYear || !lineName || !phoneNumber || submitting}
+                  onClick={async () => {
                     setFormError(null);
                     if (!isNameValid) {
                       setFormError("氏名は「姓<半角スペース>名」の形式で入力してください。");
@@ -292,9 +307,7 @@ export default function AoyamaStudentFormPage() {
                       setFormError("電話番号を入力してください。");
                       return;
                     }
-                    
-                    // メタデータを作成
-                    setFormMetadata({
+                    const metadata = {
                       student_id: studentId,
                       furigana,
                       faculty,
@@ -302,16 +315,66 @@ export default function AoyamaStudentFormPage() {
                       school_year: schoolYear,
                       line_name: lineName,
                       phone_number: phoneNumber,
-                    });
-                    
-                    setOtpEmail(autoCompletedEmail);
-                    setShowOtp(true);
+                    };
+                    setSubmitting(true);
+                    try {
+                      const otp = await sendOTPRequest({
+                        email: autoCompletedEmail,
+                        name,
+                        form_type: "aoyama-student",
+                        metadata,
+                      });
+                      setJoinRequestId(otp.id);
+                      setOtpRequested(true);
+                    } catch (err) {
+                      setFormError(err instanceof Error ? err.message : "送信に失敗しました。");
+                    } finally {
+                      setSubmitting(false);
+                    }
                   }}
                 >
-                  送信
+                  {submitting ? "送信中..." : "送信してOTPを受け取る"}
                 </button>
-                
               </div>
+
+              {otpRequested && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+                  <p className="text-sm text-emerald-800">
+                    ワンタイムパスワードを <strong>{autoCompletedEmail}</strong> に送信しました。6桁コードを入力してください。
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    className="w-full px-4 py-3 border border-emerald-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="例: 123456"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  />
+                  <button
+                    type="button"
+                    className="w-full px-6 py-3 bg-emerald-700 text-white font-bold rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={verifyingOtp || otpCode.length !== 6 || !joinRequestId}
+                    onClick={async () => {
+                      setFormError(null);
+                      setVerifyingOtp(true);
+                      try {
+                        await verifyOTP({
+                          joinRequestId,
+                          otp: otpCode,
+                        });
+                        setSubmitted(true);
+                      } catch (err) {
+                        setFormError(err instanceof Error ? err.message : "OTP検証に失敗しました。");
+                      } finally {
+                        setVerifyingOtp(false);
+                      }
+                    }}
+                  >
+                    {verifyingOtp ? "検証中..." : "OTPを検証して本入会を完了"}
+                  </button>
+                </div>
+              )}
             </form>
           </div>
 
@@ -343,7 +406,18 @@ export default function AoyamaStudentFormPage() {
         </div>
       </section>
 
-      {showOtp && <OTPModal email={otpEmail} name={name} formType="aoyama-student" metadata={formMetadata} autoSend onClose={() => setShowOtp(false)} />}
+      {submitted && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center space-y-4">
+            <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto" />
+            <h2 className="text-2xl font-bold">送信完了</h2>
+            <p className="text-slate-600">本入会が完了しました。<br />LINE招待リンクをメールで送信しました。</p>
+            <Link href="/" className="block w-full px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700">
+              ホームに戻る
+            </Link>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

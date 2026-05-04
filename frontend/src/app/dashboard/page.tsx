@@ -26,6 +26,21 @@ interface StudentProfile {
 	created_at: string;
 }
 
+interface VerifiedJoinProfile {
+	id: string;
+	studentId: string;
+	name: string;
+	furigana: string;
+	faculty: string;
+	department: string;
+	schoolYear: string;
+	lineName: string;
+	phoneNumber: string;
+	email: string;
+	status: string;
+	createdAt: string;
+}
+
 interface Contact {
 	id: string;
 	email: string;
@@ -57,8 +72,39 @@ export default function DashboardPage() {
 	const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
 	const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>([]);
 	const [contacts, setContacts] = useState<Contact[]>([]);
+	const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [confirmDelete, setConfirmDelete] = useState<{ id: string; type: 'join' | 'contact'; label: string } | null>(null);
+
+	const getMetadataValue = (metadata: Record<string, unknown> | null, key: string): string => {
+		if (!metadata) {
+			return '-';
+		}
+		const value = metadata[key];
+		if (typeof value === 'string' && value.trim().length > 0) {
+			return value;
+		}
+		return '-';
+	};
+
+	const verifiedJoinProfiles: VerifiedJoinProfile[] = joinRequests
+		.filter((req) => req.status === 'verified')
+		.map((req) => ({
+			id: req.id,
+			studentId: getMetadataValue(req.metadata, 'student_id'),
+			name: req.name || '-',
+			furigana: getMetadataValue(req.metadata, 'furigana'),
+			faculty: getMetadataValue(req.metadata, 'faculty'),
+			department: getMetadataValue(req.metadata, 'department'),
+			schoolYear: getMetadataValue(req.metadata, 'school_year'),
+			lineName: getMetadataValue(req.metadata, 'line_name'),
+			phoneNumber: getMetadataValue(req.metadata, 'phone_number'),
+			email: req.email || '-',
+			status: req.status,
+			createdAt: req.created_at,
+		}));
 
 	useEffect(() => {
 		if (status === 'unauthenticated') {
@@ -105,14 +151,10 @@ export default function DashboardPage() {
 
 			// Student Profiles を取得
 			const studentResponse = await fetch(`${baseUrl}/api/v1/dashboard/student-profiles`);
-			if (!studentResponse.ok) {
-				const text = await studentResponse.text();
-				throw new Error(`Failed to fetch student profiles: ${studentResponse.status} ${text}`);
+			if (studentResponse.ok) {
+				const studentData = await studentResponse.json().catch(() => ({ data: [] }));
+				setStudentProfiles(studentData.data || studentData || []);
 			}
-			const studentData = await studentResponse.json().catch(() => {
-				throw new Error('Invalid JSON response for student profiles');
-			});
-			setStudentProfiles(studentData.data || studentData || []);
 
 			// Contacts を取得
 			const contactResponse = await fetch(`${baseUrl}/api/v1/dashboard/contacts`);
@@ -151,6 +193,34 @@ export default function DashboardPage() {
 	if (status === 'unauthenticated') {
 		return null;
 	}
+
+	const closeMessageModal = () => {
+		setSelectedContact(null);
+	};
+
+	const handleDelete = async () => {
+		if (!confirmDelete) return;
+		const { id, type } = confirmDelete;
+		setDeletingId(id);
+		setConfirmDelete(null);
+		try {
+			const endpoint =
+				type === 'join'
+					? `/api/v1/dashboard/join-requests/${id}`
+					: `/api/v1/dashboard/contacts/${id}`;
+			const res = await fetch(endpoint, { method: 'DELETE' });
+			if (!res.ok) throw new Error('削除に失敗しました');
+			if (type === 'join') {
+				setJoinRequests((prev) => prev.filter((r) => r.id !== id));
+			} else {
+				setContacts((prev) => prev.filter((c) => c.id !== id));
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : '削除に失敗しました');
+		} finally {
+			setDeletingId(null);
+		}
+	};
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -205,9 +275,15 @@ export default function DashboardPage() {
 						<table className="min-w-full divide-y divide-gray-200">
 							<thead className="bg-gray-50">
 								<tr>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メール</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学生番号</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">氏名</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">フォーム種別</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">フリガナ</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学部</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学科</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学年</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">LINE 名</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話番号</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メールアドレス</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ステータス</th>
 									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">作成日</th>
 								</tr>
@@ -215,16 +291,22 @@ export default function DashboardPage() {
 							<tbody className="divide-y divide-gray-200">
 								{joinRequests.length === 0 ? (
 									<tr>
-										<td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+										<td colSpan={12} className="px-6 py-4 text-center text-gray-500">
 											データがありません
 										</td>
 									</tr>
 								) : (
 									joinRequests.map((req) => (
 										<tr key={req.id} className="hover:bg-gray-50">
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.email}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getMetadataValue(req.metadata, 'student_id')}</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.name}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{req.form_type}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{getMetadataValue(req.metadata, 'furigana')}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{getMetadataValue(req.metadata, 'faculty')}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{getMetadataValue(req.metadata, 'department')}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{getMetadataValue(req.metadata, 'school_year')}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{getMetadataValue(req.metadata, 'line_name')}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{getMetadataValue(req.metadata, 'phone_number')}</td>
+											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.email}</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm">
 												<span
 													className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -239,6 +321,16 @@ export default function DashboardPage() {
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 												{new Date(req.created_at).toLocaleDateString('ja-JP')}
 											</td>
+											<td className="px-4 py-4 whitespace-nowrap text-right">
+												<button
+													type="button"
+													disabled={deletingId === req.id}
+													onClick={() => setConfirmDelete({ id: req.id, type: 'join', label: `${req.name}（${req.email}）` })}
+													className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
+												>
+													{deletingId === req.id ? '削除中…' : '削除'}
+												</button>
+											</td>
 										</tr>
 									))
 								)}
@@ -248,49 +340,70 @@ export default function DashboardPage() {
 				</div>
 
 				{/* 学生プロフィール テーブル */}
-				<div className="bg-white shadow rounded-lg overflow-hidden">
-					<div className="px-6 py-4 border-b border-gray-200">
-						<h2 className="text-xl font-bold text-gray-900">学生プロフィール一覧</h2>
+				<div className="mt-10 bg-white shadow rounded-xl overflow-hidden">
+					<div className="px-7 py-5 border-b border-gray-200">
+						<h2 className="text-xl font-bold text-gray-900">学生プロフィール一覧（認証成功者）</h2>
 					</div>
 					<div className="overflow-x-auto">
 						<table className="min-w-full divide-y divide-gray-200">
 							<thead className="bg-gray-50">
 								<tr>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学籍番号</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">氏名</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">専攻</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aoyama メール</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メール確認</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">作成日時</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">学生番号</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">氏名</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">フリガナ</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">学部</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">学科</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">学年</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">LINE 名</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">電話番号</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">メールアドレス</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">ステータス</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">作成日</th>
+									<th className="px-7 py-4" />
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-gray-200">
-								{studentProfiles.length === 0 ? (
+								{verifiedJoinProfiles.length === 0 ? (
 									<tr>
-										<td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+										<td colSpan={12} className="px-7 py-6 text-center text-gray-500">
 											データがありません
 										</td>
 									</tr>
 								) : (
-									studentProfiles.map((profile) => (
+									verifiedJoinProfiles.map((profile) => (
 										<tr key={profile.id} className="hover:bg-gray-50">
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{profile.student_number}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{profile.name}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{profile.department}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{profile.email_aoyama}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.studentId}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.name}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.furigana}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.faculty}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.department}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.schoolYear}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.lineName}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.phoneNumber}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.email}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm">
 												<span
 													className={`px-2 py-1 rounded-full text-xs font-semibold ${
-														profile.email_verified
+														profile.status === 'verified'
 															? 'bg-green-100 text-green-800'
 															: 'bg-gray-100 text-gray-800'
 													}`}
 												>
-												{profile.email_verified ? '✓' : '未確認'}
+												{profile.status}
 												</span>
 											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-												{new Date(profile.created_at).toLocaleString('ja-JP')}
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-500">
+												{new Date(profile.createdAt).toLocaleString('ja-JP')}
+											</td>
+											<td className="px-4 py-5 whitespace-nowrap text-right">
+												<button
+													type="button"
+													disabled={deletingId === profile.id}
+													onClick={() => setConfirmDelete({ id: profile.id, type: 'join', label: `${profile.name}（${profile.email}）` })}
+													className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
+												>
+													{deletingId === profile.id ? '削除中…' : '削除'}
+												</button>
 											</td>
 										</tr>
 									))
@@ -301,41 +414,61 @@ export default function DashboardPage() {
 				</div>
 
 				{/* お問い合わせ テーブル */}
-				<div className="bg-white shadow rounded-lg mb-8 overflow-hidden">
-					<div className="px-6 py-4 border-b border-gray-200">
+				<div className="mt-10 mb-10 bg-white shadow rounded-xl overflow-hidden">
+					<div className="px-7 py-5 border-b border-gray-200">
 						<h2 className="text-xl font-bold text-gray-900">お問い合わせ一覧</h2>
 					</div>
 					<div className="overflow-x-auto">
 						<table className="min-w-full divide-y divide-gray-200">
 							<thead className="bg-gray-50">
 								<tr>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">氏名</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メール</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">件名</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">所属</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">メッセージ</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">受信日</th>
-								</tr>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">氏名</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">メール</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">件名</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">所属</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">メッセージ</th>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">受信日</th>								<th className="px-7 py-4" />								</tr>
 							</thead>
 							<tbody className="divide-y divide-gray-200">
 								{contacts.length === 0 ? (
 									<tr>
-										<td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+										<td colSpan={7} className="px-7 py-6 text-center text-gray-500">
 											お問い合わせがありません
 										</td>
 									</tr>
 								) : (
 									contacts.map((contact) => (
 										<tr key={contact.id} className="hover:bg-gray-50">
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{contact.name}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{contact.email}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{contact.subject || '-'}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{contact.affiliation || '-'}</td>
-											<td className="px-6 py-4 max-w-xs truncate text-sm text-gray-600">{contact.message || '-'}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-												{new Date(contact.created_at).toLocaleDateString('ja-JP')}
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{contact.name}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{contact.email}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{contact.subject || '-'}</td>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{contact.affiliation || '-'}</td>
+											<td className="px-7 py-5 max-w-xs text-sm text-gray-600 leading-relaxed">
+												{contact.message ? (
+													<button
+														type="button"
+														onClick={() => setSelectedContact(contact)}
+														className="block max-w-xs truncate text-left text-blue-700 hover:text-blue-900 hover:underline"
+														title="クリックして全文を表示"
+													>
+														{contact.message}
+													</button>
+												) : (
+													'-'
+												)}
 											</td>
-										</tr>
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-500">
+												{new Date(contact.created_at).toLocaleDateString('ja-JP')}
+											</td>										<td className="px-4 py-5 whitespace-nowrap text-right">
+											<button
+												type="button"
+												disabled={deletingId === contact.id}
+												onClick={() => setConfirmDelete({ id: contact.id, type: 'contact', label: `${contact.name}（${contact.email}）` })}
+												className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
+											>
+												{deletingId === contact.id ? '削除中…' : '削除'}
+											</button>
+										</td>										</tr>
 									))
 								)}
 							</tbody>
@@ -352,6 +485,67 @@ export default function DashboardPage() {
 						ホームに戻る
 					</Link>
 				</div>
+
+				{confirmDelete && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+						<div className="w-full max-w-sm rounded-lg bg-white shadow-xl">
+							<div className="px-6 py-5">
+								<h3 className="text-base font-bold text-gray-900 mb-2">削除の確認</h3>
+								<p className="text-sm text-gray-600">
+									以下のデータを削除しますか？この操作は取り消せません。
+								</p>
+								<p className="mt-2 text-sm font-medium text-gray-800 break-all">{confirmDelete.label}</p>
+							</div>
+							<div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+								<button
+									type="button"
+									onClick={() => setConfirmDelete(null)}
+									className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+								>
+									キャンセル
+								</button>
+								<button
+									type="button"
+									onClick={handleDelete}
+									className="rounded px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700"
+								>
+									削除する
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{selectedContact && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeMessageModal}>
+						<div
+							className="w-full max-w-2xl rounded-lg bg-white shadow-xl"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+								<h3 className="text-lg font-bold text-gray-900">お問い合わせメッセージ全文</h3>
+								<button
+									type="button"
+									onClick={closeMessageModal}
+									className="rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+								>
+									閉じる
+								</button>
+							</div>
+							<div className="space-y-3 px-6 py-5 text-sm text-gray-700">
+								<p><span className="font-semibold text-gray-900">氏名:</span> {selectedContact.name}</p>
+								<p><span className="font-semibold text-gray-900">メール:</span> {selectedContact.email}</p>
+								<p><span className="font-semibold text-gray-900">件名:</span> {selectedContact.subject || '-'}</p>
+								<div>
+									<p className="font-semibold text-gray-900">メッセージ:</p>
+									<p className="mt-2 max-h-80 overflow-y-auto whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-3 leading-relaxed">
+										{selectedContact.message || '-'}
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);

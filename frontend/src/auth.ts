@@ -13,7 +13,7 @@ declare module "next-auth" {
   }
 }
 
-const allowedEmails = (process.env.NEXT_PUBLIC_ALLOWED_EMAILS || "").split(",").map(email => email.trim());
+const allowedEmails = (process.env.NEXT_PUBLIC_ALLOWED_EMAILS || "").split(",").map(email => email.trim()).filter(Boolean);
 
 const providers: any[] = [];
 
@@ -49,6 +49,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async signIn({ user }) {
+      // allowedEmails が空の場合は全員許可（開発環境等）
+      if (allowedEmails.length === 0) return true;
       // メールアドレスがホワイトリストに含まれているかチェック
       if (!user.email || !allowedEmails.includes(user.email)) {
         return false;
