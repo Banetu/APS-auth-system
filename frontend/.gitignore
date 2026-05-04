@@ -1,2 +1,17 @@
-.vercel
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Deployment
+.vercel/
+
+# Environment
+.env.local
 .env*.local
+
+# Misc
+*.log
+*.tsbuildinfo
