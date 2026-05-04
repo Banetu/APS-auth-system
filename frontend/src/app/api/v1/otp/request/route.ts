@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     );
 
     const brevoApiKey = process.env.BREVO_API_KEY;
-    const senderEmail = process.env.SENDER_EMAIL || 'noreply@aoyamapiano.sakura.ne.jp';
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@aoyamapiano.sakura.ne.jp';
 
     if (!brevoApiKey) {
       return NextResponse.json({ error: 'BREVO_API_KEY is not configured' }, { status: 500 });
