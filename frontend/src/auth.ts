@@ -43,6 +43,7 @@ if (providers.length === 0) {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
+  trustHost: true,
   pages: {
     signIn: "/login",
     error: "/login",
