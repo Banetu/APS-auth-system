@@ -8,6 +8,8 @@ import StudentNumberInput from "../../../../components/forms/StudentNumberInput"
 import { validateFullName, getDepartmentsFromStudentId, validateStudentId } from "../../../../lib/validation";
 import { sendOTPRequest, verifyOTP } from "../../../../lib/api";
 
+const DEFAULT_LINE_INVITE_URL = process.env.NEXT_PUBLIC_LINE_INVITE_URL || "";
+
 function buildAoyamaEmail(studentId: string): string {
   const headMap: Record<string, string> = {
     "1": "a",
@@ -45,7 +47,7 @@ export default function AoyamaStudentFormPage() {
   const [otpCode, setOtpCode] = useState("");
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
+  const [lineInviteUrl, setLineInviteUrl] = useState(DEFAULT_LINE_INVITE_URL);
   // 学生番号が変更されたときに自動的に学部・学科を取得して設定
   useEffect(() => {
     const normalizedId = studentId.trim().toUpperCase();
@@ -359,10 +361,11 @@ export default function AoyamaStudentFormPage() {
                       setFormError(null);
                       setVerifyingOtp(true);
                       try {
-                        await verifyOTP({
+                        const result = await verifyOTP({
                           joinRequestId,
                           otp: otpCode,
                         });
+                        setLineInviteUrl(result.lineInviteUrl || DEFAULT_LINE_INVITE_URL);
                         setSubmitted(true);
                       } catch (err) {
                         setFormError(err instanceof Error ? err.message : "OTP検証に失敗しました。");
@@ -411,7 +414,19 @@ export default function AoyamaStudentFormPage() {
           <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center space-y-4">
             <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto" />
             <h2 className="text-2xl font-bold">送信完了</h2>
-            <p className="text-slate-600">本入会が完了しました。<br />LINE招待リンクをメールで送信しました。</p>
+            <p className="text-slate-600">本入会が完了しました。<br />以下のボタンからAPSライングループに参加してください。</p>
+            {lineInviteUrl ? (
+              <a
+                href={lineInviteUrl}
+                className="block w-full px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700"
+              >
+                APSライングループに加入する
+              </a>
+            ) : (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                LINE招待URLが設定されていません。管理者へお問い合わせください。
+              </p>
+            )}
             <Link href="/" className="block w-full px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700">
               ホームに戻る
             </Link>
