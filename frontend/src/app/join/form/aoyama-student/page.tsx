@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Info, CheckCircle, FileText, AlertCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
 import NameInput from "../../../../components/forms/NameInput";
 import StudentNumberInput from "../../../../components/forms/StudentNumberInput";
-import { validateFullName, getDepartmentsFromStudentId, validateStudentId } from "../../../../lib/validation";
-import { sendOTPRequest, verifyOTP } from "../../../../lib/api";
+import { validateFullName, getDepartmentsFromStudentId, validateStudentId, normalizeStudentId } from "../../../../lib/validation";
+import { completeJoinDomainVerification, submitJoinRequest } from "../../../../lib/api";
 
 const DEFAULT_LINE_INVITE_URL = process.env.NEXT_PUBLIC_LINE_INVITE_URL || "";
 
@@ -19,7 +21,7 @@ function buildAoyamaEmail(studentId: string): string {
     S: "s",
   };
 
-  const normalized = studentId.trim();
+  const normalized = normalizeStudentId(studentId);
   const first = normalized.charAt(0).toUpperCase();
   const tail = normalized.slice(1).toLowerCase();
   const prefix = headMap[first];
@@ -32,6 +34,8 @@ function buildAoyamaEmail(studentId: string): string {
 }
 
 export default function AoyamaStudentFormPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [studentId, setStudentId] = useState("");
   const [name, setName] = useState("");
   const [furigana, setFurigana] = useState("");
@@ -42,15 +46,12 @@ export default function AoyamaStudentFormPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [otpRequested, setOtpRequested] = useState(false);
   const [joinRequestId, setJoinRequestId] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [lineInviteUrl, setLineInviteUrl] = useState(DEFAULT_LINE_INVITE_URL);
   // 学生番号が変更されたときに自動的に学部・学科を取得して設定
   useEffect(() => {
-    const normalizedId = studentId.trim().toUpperCase();
+    const normalizedId = normalizeStudentId(studentId);
     if (normalizedId.length === 0) {
       setFaculty("");
       setDepartment("");
@@ -77,6 +78,39 @@ export default function AoyamaStudentFormPage() {
   // 半角スペースで姓名が区切られているかチェック
   const nameHasHalfWidthSpace = name.trim().includes(' ');
   const showNameSpaceWarning = name.trim().length >= 2 && !nameHasHalfWidthSpace;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const queryJoinRequestId = params.get("joinRequestId") || "";
+    if (queryJoinRequestId) {
+      setJoinRequestId(queryJoinRequestId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!joinRequestId || submitted || status !== "authenticated") {
+      return;
+    }
+
+    // ログイン中のアカウントが @aoyama.ac.jp でない場合は検証しない
+    const sessionEmail = session?.user?.email?.trim().toLowerCase() || "";
+    if (!sessionEmail.endsWith("@aoyama.ac.jp")) {
+      return;
+    }
+
+    const triggerVerification = async () => {
+      try {
+        const result = await completeJoinDomainVerification({ joinRequestId });
+        if (result.joined) {
+          setSubmitted(true);
+        }
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : "Google認証の完了に失敗しました。ログインし直してください。");
+      }
+    };
+
+    void triggerVerification();
+  }, [joinRequestId, submitted, status, session]);
 
   return (
     <main className="bg-slate-50 text-slate-900 font-sans min-h-screen">
@@ -320,14 +354,16 @@ export default function AoyamaStudentFormPage() {
                     };
                     setSubmitting(true);
                     try {
-                      const otp = await sendOTPRequest({
+                      const response = await submitJoinRequest({
                         email: autoCompletedEmail,
                         name,
                         form_type: "aoyama-student",
                         metadata,
                       });
-                      setJoinRequestId(otp.id);
-                      setOtpRequested(true);
+                      setJoinRequestId(response.id);
+                      router.push(
+                        `/login?callbackUrl=${encodeURIComponent(`/join/form/aoyama-student?joinRequestId=${response.id}&email=${encodeURIComponent(autoCompletedEmail)}`)}&email=${encodeURIComponent(autoCompletedEmail)}`
+                      );
                     } catch (err) {
                       setFormError(err instanceof Error ? err.message : "送信に失敗しました。");
                     } finally {
@@ -335,49 +371,9 @@ export default function AoyamaStudentFormPage() {
                     }
                   }}
                 >
-                  {submitting ? "送信中..." : "送信してOTPを受け取る"}
+                  {submitting ? "送信中..." : "送信してGoogleログインへ進む"}
                 </button>
               </div>
-
-              {otpRequested && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-3">
-                  <p className="text-sm text-emerald-800">
-                    ワンタイムパスワードを <strong>{autoCompletedEmail}</strong> に送信しました。6桁コードを入力してください。
-                  </p>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    className="w-full px-4 py-3 border border-emerald-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="例: 123456"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                  />
-                  <button
-                    type="button"
-                    className="w-full px-6 py-3 bg-emerald-700 text-white font-bold rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={verifyingOtp || otpCode.length !== 6 || !joinRequestId}
-                    onClick={async () => {
-                      setFormError(null);
-                      setVerifyingOtp(true);
-                      try {
-                        const result = await verifyOTP({
-                          joinRequestId,
-                          otp: otpCode,
-                        });
-                        setLineInviteUrl(result.lineInviteUrl || DEFAULT_LINE_INVITE_URL);
-                        setSubmitted(true);
-                      } catch (err) {
-                        setFormError(err instanceof Error ? err.message : "OTP検証に失敗しました。");
-                      } finally {
-                        setVerifyingOtp(false);
-                      }
-                    }}
-                  >
-                    {verifyingOtp ? "検証中..." : "OTPを検証して本入会を完了"}
-                  </button>
-                </div>
-              )}
             </form>
           </div>
 
@@ -394,15 +390,15 @@ export default function AoyamaStudentFormPage() {
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">2</span>
-                <span>入力したメールアドレス宛に認証パスワード（ワンタイムコード）を送信します。</span>
+                <span>Googleログイン画面に移動し、入力したメールアドレスが自動で入ります。</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">3</span>
-                <span>メールに届いた認証パスワードをこのページの確認欄に入力して検証してください。</span>
+                <span>@aoyama.ac.jp のGoogleアカウントでログインしてください。</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">4</span>
-                <span>検証成功後、ライングループ招待リンクが発行されます。リンクからグループに参加してください。</span>
+                <span>ログイン成功後、このページに戻って認証が完了します。</span>
               </li>
             </ol>
           </div>
@@ -414,7 +410,7 @@ export default function AoyamaStudentFormPage() {
           <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center space-y-4">
             <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto" />
             <h2 className="text-2xl font-bold">送信完了</h2>
-            <p className="text-slate-600">本入会が完了しました。<br />以下のボタンからAPSライングループに参加してください。</p>
+            <p className="text-slate-600">本入会が完了しました。<br />以下のボタンからAPSライングループに参加してください。<br /><span className="text-sm text-slate-500">また、登録したメールアドレスにLINEグループURLをお送りしました。</span></p>
             {lineInviteUrl ? (
               <a
                 href={lineInviteUrl}

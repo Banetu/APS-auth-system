@@ -25,6 +25,13 @@ export async function POST(request: NextRequest) {
     const result = await query(
       `INSERT INTO join_requests (email, name, form_type, status, metadata)
        VALUES ($1, $2, $3, 'pending', $4)
+       ON CONFLICT (email)
+       DO UPDATE SET
+         name = EXCLUDED.name,
+         form_type = EXCLUDED.form_type,
+         status = 'pending',
+         metadata = EXCLUDED.metadata,
+         updated_at = NOW()
        RETURNING id, email, name, form_type, status, metadata, created_at`,
       [email, name, form_type, metadata ? JSON.stringify(metadata) : null]
     );

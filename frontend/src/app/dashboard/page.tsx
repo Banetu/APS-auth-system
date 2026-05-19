@@ -68,6 +68,10 @@ interface DashboardSummary {
 export default function DashboardPage() {
 	const { data: session, status } = useSession();
 	const router = useRouter();
+	const dashboardAllowedEmails = (process.env.NEXT_PUBLIC_ALLOWED_EMAILS || '')
+		.split(',')
+		.map((v) => v.trim().toLowerCase())
+		.filter(Boolean);
 	const [summary, setSummary] = useState<DashboardSummary | null>(null);
 	const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
 	const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>([]);
@@ -111,6 +115,22 @@ export default function DashboardPage() {
 			router.push('/login');
 		}
 	}, [status, router]);
+
+	useEffect(() => {
+		if (status !== 'authenticated') {
+			return;
+		}
+
+		const email = session?.user?.email?.trim().toLowerCase();
+		if (!email) {
+			router.push('/login');
+			return;
+		}
+
+		if (dashboardAllowedEmails.length > 0 && !dashboardAllowedEmails.includes(email)) {
+			router.push('/login?error=AccessDenied');
+		}
+	}, [status, session?.user?.email, router]);
 
 	const fetchDashboardData = async () => {
 		try {
@@ -174,10 +194,16 @@ export default function DashboardPage() {
 	};
 
 	useEffect(() => {
-		if (status === 'authenticated') {
+		const email = session?.user?.email?.trim().toLowerCase();
+		const canAccessDashboard =
+			status === 'authenticated' &&
+			Boolean(email) &&
+			(dashboardAllowedEmails.length === 0 || dashboardAllowedEmails.includes(email as string));
+
+		if (canAccessDashboard) {
 			void fetchDashboardData();
 		}
-	}, [status]);
+	}, [status, session?.user?.email]);
 
 	if (status === 'loading' || loading) {
 		return (
@@ -427,7 +453,9 @@ export default function DashboardPage() {
 									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">件名</th>
 									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">所属</th>
 									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">メッセージ</th>
-									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">受信日</th>								<th className="px-7 py-4" />								</tr>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">受信日</th>
+									<th className="px-7 py-4" />
+								</tr>
 							</thead>
 							<tbody className="divide-y divide-gray-200">
 								{contacts.length === 0 ? (
@@ -459,7 +487,8 @@ export default function DashboardPage() {
 											</td>
 											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-500">
 												{new Date(contact.created_at).toLocaleDateString('ja-JP')}
-											</td>										<td className="px-4 py-5 whitespace-nowrap text-right">
+											</td>
+											<td className="px-4 py-5 whitespace-nowrap text-right">
 											<button
 												type="button"
 												disabled={deletingId === contact.id}
@@ -468,7 +497,8 @@ export default function DashboardPage() {
 											>
 												{deletingId === contact.id ? '削除中…' : '削除'}
 											</button>
-										</td>										</tr>
+										</td>
+										</tr>
 									))
 								)}
 							</tbody>

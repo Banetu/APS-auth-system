@@ -7,18 +7,31 @@ import { Loader } from "lucide-react";
 interface GoogleLoginButtonProps {
   callbackUrl?: string;
   text?: string;
+  email?: string;
 }
 
 export function GoogleLoginButton({
   callbackUrl = "/",
   text = "Google でログイン",
+  email,
 }: GoogleLoginButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
     setLoading(true);
     try {
-      await signIn("google", { callbackUrl });
+      const loginParams: Record<string, string> = {
+        prompt: "select_account",
+      };
+      if (email) {
+        loginParams.login_hint = email;
+      }
+
+      await signIn(
+        "google",
+        { callbackUrl },
+        loginParams
+      );
     } finally {
       setLoading(false);
     }

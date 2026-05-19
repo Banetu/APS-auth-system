@@ -1,6 +1,10 @@
+export function normalizeStudentId(studentId: string): string {
+  return studentId.trim().normalize("NFKC").toUpperCase();
+}
+
 export function getDepartmentsFromStudentId(studentId: string): string[] {
   // 学生番号の先頭3文字（学科コード）で学部学科を判定
-  const normalized = studentId.trim().toUpperCase();
+  const normalized = normalizeStudentId(studentId);
   const code = normalized.slice(0, 3);
 
   const departmentMap: Record<string, string[]> = {
@@ -44,7 +48,7 @@ export function validateFullName(name: string): boolean {
 
 export function validateStudentId(studentId: string): boolean {
   // 形式: 先頭3文字が定義済み学科コードで、全8文字
-  const normalized = studentId.trim().toUpperCase();
+  const normalized = normalizeStudentId(studentId);
   if (!/^[A-Z0-9]{8}$/.test(normalized)) {
     return false;
   }

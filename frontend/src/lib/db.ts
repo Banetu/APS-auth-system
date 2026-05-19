@@ -85,6 +85,23 @@ export async function ensureJoinRequestsTableExists(): Promise<void> {
     ALTER TABLE join_requests
     ADD COLUMN IF NOT EXISTS metadata JSONB
   `);
+
+  // 旧スキーマとの互換性維持: 更新系エンドポイントで必要な列を補完
+  await query(`
+    ALTER TABLE join_requests
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'
+  `);
+
+  await query(`
+    ALTER TABLE join_requests
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  // ON CONFLICT (email) のために UNIQUE インデックスが必要
+  await query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS join_requests_email_unique
+    ON join_requests(email)
+  `);
 }
 
 export async function ensureJoinRequestOtpsTableExists(): Promise<void> {

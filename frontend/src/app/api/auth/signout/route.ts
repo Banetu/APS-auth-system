@@ -1,11 +1,7 @@
 // 役割: サインアウト
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getBaseUrl } from "@/lib/url";
+import { handlers } from "@/auth";
 
-export async function GET(request: NextRequest) {
-	const url = new URL(request.url);
-	const qs = url.search || "";
-	return NextResponse.redirect(`${getBaseUrl(request)}/auth/signout${qs}`);
-}
+// NextAuth の signOut() は POST /api/auth/signout を使う。
+// 独自ルートが catch-all より優先されるため、NextAuth のハンドラをここで再エクスポートする。
+export const { GET, POST } = handlers;

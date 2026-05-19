@@ -1,6 +1,5 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 // ---- SVG icons ----
@@ -45,8 +44,6 @@ function IconLock({ className }: { className?: string }) {
 }
 
 export default function Home() {
-	const { data: session, status } = useSession();
-
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<div className="max-w-4xl mx-auto px-6 py-14">
@@ -109,50 +106,48 @@ export default function Home() {
 						</div>
 					</Link>
 
-					{/* ダッシュボード or ログインカード */}
-					{status !== 'loading' && (
-						session ? (
-							<Link href="/dashboard" className="group">
-								<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-purple-200 transition">
-									<div className="flex items-start justify-between mb-5">
-										<div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
-											<IconDashboard className="w-6 h-6" />
-										</div>
-										<span className="text-gray-300 group-hover:text-purple-400 transition text-xl leading-none">›</span>
+					{/* ログイン / 管理導線 */}
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+						<Link href="/login" className="group">
+							<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-gray-400 transition">
+								<div className="flex items-start justify-between mb-5">
+									<div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+										<IconLock className="w-6 h-6" />
 									</div>
-									<h2 className="text-lg font-bold text-gray-900 mb-1">ダッシュボード</h2>
-									<p className="text-sm text-gray-500 flex-1">
-										入会リクエストや学生プロフィールの一覧を確認・管理します。
-									</p>
-									<div className="mt-5">
-										<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-purple-300 group-hover:text-purple-700 transition">
-											管理者
-										</span>
-									</div>
+									<span className="text-gray-300 group-hover:text-gray-500 transition text-xl leading-none">›</span>
 								</div>
-							</Link>
-						) : (
-							<Link href="/login" className="group">
-								<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-gray-400 transition">
-									<div className="flex items-start justify-between mb-5">
-										<div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-											<IconLock className="w-6 h-6" />
-										</div>
-										<span className="text-gray-300 group-hover:text-gray-500 transition text-xl leading-none">›</span>
-									</div>
-									<h2 className="text-lg font-bold text-gray-900 mb-1">管理者ログイン</h2>
-									<p className="text-sm text-gray-500 flex-1">
-										管理画面にアクセスするにはログインが必要です。
-									</p>
-									<div className="mt-5">
-										<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-gray-400 group-hover:text-gray-800 transition">
-											ログイン
-										</span>
-									</div>
+								<h2 className="text-lg font-bold text-gray-900 mb-1">管理者ログイン</h2>
+								<p className="text-sm text-gray-500 flex-1">
+									管理画面にアクセスするにはログインが必要です。
+								</p>
+								<div className="mt-5">
+									<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-gray-400 group-hover:text-gray-800 transition">
+										ログイン
+									</span>
 								</div>
-							</Link>
-						)
-					)}
+							</div>
+						</Link>
+
+						<Link href="/dashboard" className="group">
+							<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-purple-200 transition">
+								<div className="flex items-start justify-between mb-5">
+									<div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+										<IconDashboard className="w-6 h-6" />
+									</div>
+									<span className="text-gray-300 group-hover:text-purple-400 transition text-xl leading-none">›</span>
+								</div>
+								<h2 className="text-lg font-bold text-gray-900 mb-1">ダッシュボード</h2>
+								<p className="text-sm text-gray-500 flex-1">
+									入会リクエストや学生プロフィールの一覧を確認・管理します。
+								</p>
+								<div className="mt-5">
+									<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-purple-300 group-hover:text-purple-700 transition">
+										管理者
+									</span>
+								</div>
+							</div>
+						</Link>
+					</div>
 
 				</div>
 

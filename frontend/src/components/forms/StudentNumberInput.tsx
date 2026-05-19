@@ -1,6 +1,7 @@
 "use client";
 
 import React, { forwardRef } from 'react';
+import { normalizeStudentId } from '@/lib/validation';
 
 interface StudentNumberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value?: string;
@@ -10,7 +11,7 @@ interface StudentNumberInputProps extends React.InputHTMLAttributes<HTMLInputEle
 const StudentNumberInput = forwardRef<HTMLInputElement, StudentNumberInputProps>(
   ({ value, onChange, ...props }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value.toUpperCase();
+      const newValue = normalizeStudentId(e.target.value);
       onChange?.(newValue);
     };
 

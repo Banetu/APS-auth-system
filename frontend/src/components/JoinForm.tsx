@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { sendOTPRequest, JoinRequestPayload } from "@/lib/api";
+import { submitJoinRequest, JoinRequestPayload } from "@/lib/api";
 import { AlertCircle, CheckCircle, Loader } from "lucide-react";
 
 interface JoinFormProps {
@@ -59,7 +59,7 @@ export function JoinForm({ onSuccess }: JoinFormProps) {
         form_type: "prospective-student",
       };
 
-      const response = await sendOTPRequest(payload);
+      const response = await submitJoinRequest(payload);
       setJoinRequestId(response.id);
       setSuccess(true);
 
@@ -82,8 +82,8 @@ export function JoinForm({ onSuccess }: JoinFormProps) {
           <div>
             <h3 className="font-semibold text-green-900 mb-2">OTP送信完了</h3>
             <p className="text-green-800 text-sm mb-4">
-              入力いただいたメールアドレスに認証コードを送信しました。
-              メールを確認して、6桁のコードを入力してください。
+              申請情報を受け付けました。
+              次の画面でGoogleログインによる所属ドメイン認証に進んでください。
             </p>
             <p className="text-xs text-green-700">
               Request ID: {joinRequestId}
@@ -157,7 +157,7 @@ export function JoinForm({ onSuccess }: JoinFormProps) {
         className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading && <Loader className="w-4 h-4 animate-spin" />}
-        {loading ? "送信中..." : "OTPを送信"}
+        {loading ? "送信中..." : "申請を送信"}
       </button>
     </form>
   );

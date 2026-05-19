@@ -1,48 +1,23 @@
-import { createSupabaseServer } from "@/lib/supabase";
-import { getBackendAuthorizationHeader } from "@/lib/backendAuth";
+import { auth } from "@/auth";
 import { getStudentProfile } from "@/actions/student-registration";
 import ProfileForm from "./ProfileForm";
 import styles from "../join/join.module.css";
 import { redirect } from "next/navigation";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
-
-async function resolveRoleFromBackend(authorization: string): Promise<string> {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
-      headers: { Authorization: authorization },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { app_role?: string };
-      return data.app_role ?? "none";
-    }
-  } catch {
-    // fallback
-  }
-  return "none";
-}
-
 export default async function ProfilePage() {
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const email = session?.user?.email;
+  const role = session?.user?.role ?? "none";
+  const callback = encodeURIComponent("/profile");
 
-  if (!user) {
-    redirect(`/login?callbackUrl=%2Fprofile`);
+  if (!email) {
+    redirect(`/login?callbackUrl=${callback}`);
   }
 
-  const authorization = await getBackendAuthorizationHeader();
-  if (!authorization) {
-    redirect(`/login?callbackUrl=%2Fprofile`);
-  }
-
-  const role = await resolveRoleFromBackend(authorization);
   const isMember = role === "member" || role === "admin" || role === "obog";
   if (!isMember) {
-    // not allowed
-    redirect(`/login?callbackUrl=%2Fprofile`);
+    // ログイン済みだが権限なし → /login に戻すと無限ループになるので / へ
+    redirect("/");
   }
 
   // Fetch existing profile (may be null)
