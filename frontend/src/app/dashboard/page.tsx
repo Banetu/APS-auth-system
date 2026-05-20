@@ -53,6 +53,18 @@ interface Contact {
 	created_at: string;
 }
 
+interface EditForm {
+	universityName: string;
+	studentId: string;
+	name: string;
+	furigana: string;
+	faculty: string;
+	department: string;
+	schoolYear: string;
+	lineName: string;
+	phoneNumber: string;
+}
+
 interface DashboardSummary {
 	join_requests: {
 		total: number;
@@ -84,6 +96,10 @@ export default function DashboardPage() {
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [verifyingId, setVerifyingId] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState<{ id: string; type: 'join' | 'contact'; label: string } | null>(null);
+	const [editingProfile, setEditingProfile] = useState<VerifiedJoinProfile | null>(null);
+	const emptyEditForm: EditForm = { universityName: '', studentId: '', name: '', furigana: '', faculty: '', department: '', schoolYear: '', lineName: '', phoneNumber: '' };
+	const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
+	const [savingProfile, setSavingProfile] = useState(false);
 
 	const getMetadataValue = (metadata: Record<string, unknown> | null, key: string): string => {
 		if (!metadata) {
@@ -245,6 +261,74 @@ export default function DashboardPage() {
 			setError(err instanceof Error ? err.message : '失敗しました');
 		} finally {
 			setVerifyingId(null);
+		}
+	};
+
+	const handleEditProfile = (profile: VerifiedJoinProfile) => {
+		const v = (s: string) => (s === '-' ? '' : s);
+		setEditForm({
+			universityName: v(profile.universityName),
+			studentId: v(profile.studentId),
+			name: v(profile.name),
+			furigana: v(profile.furigana),
+			faculty: v(profile.faculty),
+			department: v(profile.department),
+			schoolYear: v(profile.schoolYear),
+			lineName: v(profile.lineName),
+			phoneNumber: v(profile.phoneNumber),
+		});
+		setEditingProfile(profile);
+	};
+
+	const handleSaveProfile = async () => {
+		if (!editingProfile) return;
+		setSavingProfile(true);
+		try {
+			const res = await fetch(`/api/v1/dashboard/join-requests/${editingProfile.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					profile: {
+						name: editForm.name,
+						university_name: editForm.universityName,
+						metadata: {
+							student_id: editForm.studentId,
+							furigana: editForm.furigana,
+							faculty: editForm.faculty,
+							department: editForm.department,
+							school_year: editForm.schoolYear,
+							line_name: editForm.lineName,
+							phone_number: editForm.phoneNumber,
+						},
+					},
+				}),
+			});
+			if (!res.ok) throw new Error('保存に失敗しました');
+			setJoinRequests((prev) =>
+				prev.map((r) => {
+					if (r.id !== editingProfile.id) return r;
+					return {
+						...r,
+						name: editForm.name,
+						university_name: editForm.universityName,
+						metadata: {
+							...r.metadata,
+							student_id: editForm.studentId,
+							furigana: editForm.furigana,
+							faculty: editForm.faculty,
+							department: editForm.department,
+							school_year: editForm.schoolYear,
+							line_name: editForm.lineName,
+							phone_number: editForm.phoneNumber,
+						},
+					};
+				})
+			);
+			setEditingProfile(null);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : '保存に失敗しました');
+		} finally {
+			setSavingProfile(false);
 		}
 	};
 
@@ -460,14 +544,23 @@ export default function DashboardPage() {
 												{new Date(profile.createdAt).toLocaleString('ja-JP')}
 											</td>
 											<td className="px-4 py-5 whitespace-nowrap text-right">
-												<button
-													type="button"
-													disabled={deletingId === profile.id}
-													onClick={() => setConfirmDelete({ id: profile.id, type: 'join', label: `${profile.name}（${profile.email}）` })}
-													className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
-												>
-													{deletingId === profile.id ? '削除中…' : '削除'}
-												</button>
+												<div className="flex flex-col gap-1 items-end">
+													<button
+														type="button"
+														onClick={() => handleEditProfile(profile)}
+														className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+													>
+														編集
+													</button>
+													<button
+														type="button"
+														disabled={deletingId === profile.id}
+														onClick={() => setConfirmDelete({ id: profile.id, type: 'join', label: `${profile.name}（${profile.email}）` })}
+														className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
+													>
+														{deletingId === profile.id ? '削除中…' : '削除'}
+													</button>
+												</div>
 											</td>
 										</tr>
 									))
@@ -553,6 +646,54 @@ export default function DashboardPage() {
 						ホームに戻る
 					</Link>
 				</div>
+
+				{editingProfile && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+						<div className="w-full max-w-lg rounded-xl bg-white shadow-xl overflow-y-auto max-h-[90vh]">
+							<div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+								<h3 className="text-base font-bold text-gray-900">プロフィール編集</h3>
+								<button type="button" onClick={() => setEditingProfile(null)} className="rounded px-3 py-1 text-sm text-gray-500 hover:bg-gray-100">閉じる</button>
+							</div>
+							<div className="px-6 py-5">
+								<p className="mb-4 text-xs text-gray-400">メールアドレス: <span className="font-medium text-gray-600">{editingProfile.email}</span></p>
+								<div className="grid grid-cols-2 gap-4">
+									{([
+										['大学名', 'universityName'],
+										['学生番号', 'studentId'],
+										['氏名', 'name'],
+										['フリガナ', 'furigana'],
+										['学部', 'faculty'],
+										['学科', 'department'],
+										['学年', 'schoolYear'],
+										['LINE名', 'lineName'],
+										['電話番号', 'phoneNumber'],
+									] as [string, keyof EditForm][]).map(([label, key]) => (
+										<div key={key}>
+											<label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+											<input
+												type="text"
+												value={editForm[key]}
+												onChange={(e) => setEditForm((prev) => ({ ...prev, [key]: e.target.value }))}
+												className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+											/>
+										</div>
+									))}
+								</div>
+							</div>
+							<div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+								<button type="button" onClick={() => setEditingProfile(null)} className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">キャンセル</button>
+								<button
+									type="button"
+									disabled={savingProfile}
+									onClick={handleSaveProfile}
+									className="rounded px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+								>
+									{savingProfile ? '保存中…' : '保存する'}
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
 
 				{confirmDelete && (
 					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
