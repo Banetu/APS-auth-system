@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ensureJoinRequestsTableExists, query } from "@/lib/db";
+import { sendLineNotification } from "@/lib/line";
 
 const AOYAMA_DOMAIN = "aoyama.ac.jp";
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       `UPDATE join_requests
-       SET status = 'verified',
+       SET status = 'member',
            updated_at = NOW(),
            metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('verified_by_google_email', $2::text)
        WHERE id = $1
@@ -65,8 +66,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "join request が見つかりません" }, { status: 404 });
     }
 
-    // LINEグループ招待リンクをメールで送信
     const { email: recipientEmail, name: recipientName } = result.rows[0];
+
+    await sendLineNotification(
+      `\ud83c\udf93 \u5728\u5b66\u751f\u8a8d\u8a3c\u304c\u5b8c\u4e86\u3057\u307e\u3057\u305f\n\u6c0f\u540d: ${recipientName}\n\u30e1\u30fc\u30eb: ${recipientEmail}`
+    );
+
+    // LINEグループ招待リンクをメールで送信
     const lineInviteUrl = process.env.LINE_INVITE_URL || process.env.NEXT_PUBLIC_LINE_INVITE_URL || "";
     const brevoApiKey = process.env.BREVO_API_KEY;
     const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@aoyamapiano.com";

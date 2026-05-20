@@ -23,6 +23,7 @@ export interface JoinRequestPayload {
   name: string;
   form_type: string;
   confirm_email?: string;
+  university_name?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -52,6 +53,27 @@ export async function completeJoinDomainVerification(payload: { joinRequestId: s
   }
   const data = await res.json() as { joined?: boolean };
   return { joined: Boolean(data.joined) };
+}
+
+export interface MemberRegisterPayload {
+  email: string;
+  name: string;
+  university_name: string;
+  metadata?: Record<string, unknown>;
+}
+
+export async function registerMember(payload: MemberRegisterPayload): Promise<{ id: string }> {
+  const res = await fetch('/api/v1/join-requests/member-register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: string }).error || '登録に失敗しました');
+  }
+  const data = await res.json() as { data?: { id?: string } };
+  return { id: String(data.data?.id ?? '') };
 }
 
 export async function sendOTPRequest(payload: JoinRequestPayload): Promise<{ id: string }> {

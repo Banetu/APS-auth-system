@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 
-// ---- SVG icons ----
 function IconBuilding({ className }: { className?: string }) {
 	return (
 		<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -13,11 +12,23 @@ function IconBuilding({ className }: { className?: string }) {
 	);
 }
 
-function IconMail({ className }: { className?: string }) {
+function IconUserPlus({ className }: { className?: string }) {
 	return (
 		<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-			<rect x="2" y="4" width="20" height="16" rx="2" />
-			<path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+			<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+			<circle cx="8.5" cy="7" r="4" />
+			<line x1="20" y1="8" x2="20" y2="14" />
+			<line x1="23" y1="11" x2="17" y2="11" />
+		</svg>
+	);
+}
+
+function IconClipboard({ className }: { className?: string }) {
+	return (
+		<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+			<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+			<rect x="8" y="2" width="8" height="4" rx="1" />
+			<path d="M9 12h6M9 16h6" />
 		</svg>
 	);
 }
@@ -33,38 +44,21 @@ function IconDashboard({ className }: { className?: string }) {
 	);
 }
 
-function IconLock({ className }: { className?: string }) {
-	return (
-		<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-			<rect x="3" y="11" width="18" height="11" rx="2" />
-			<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-			<circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none" />
-		</svg>
-	);
-}
-
 export default function Home() {
 	return (
 		<div className="min-h-screen bg-gray-50">
-			<div className="max-w-4xl mx-auto px-6 py-14">
-
-				{/* タイトル */}
+			<div className="max-w-5xl mx-auto px-6 py-14">
 				<div className="mb-3">
 					<h1 className="text-2xl font-bold text-gray-900">入会フォーム</h1>
 					<p className="mt-1 text-sm text-gray-500">青山ピアノソサイエティ（APS）へのご入会はこちらからどうぞ。</p>
 				</div>
-
-				{/* お知らせ */}
 				<div className="mb-10 rounded-xl bg-white border border-gray-200 px-5 py-3 text-sm text-gray-600 shadow-sm">
 					ご不明点やバグ報告がございましたら、
 					<Link href="/contact" className="text-teal-600 hover:underline mx-1">お問い合わせページ</Link>
 					をご利用ください。
 				</div>
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
-				{/* 3カラム カード */}
-				<div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-
-					{/* 在学生カード */}
 					<Link href="/join/form/aoyama-student" className="group">
 						<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-teal-200 transition">
 							<div className="flex items-start justify-between mb-5">
@@ -73,90 +67,64 @@ export default function Home() {
 								</div>
 								<span className="text-gray-300 group-hover:text-teal-400 transition text-xl leading-none">›</span>
 							</div>
-							<h2 className="text-lg font-bold text-gray-900 mb-1">在学生</h2>
-							<p className="text-sm text-gray-500 flex-1">
-								青山学院大学に現在在学中の方向けです。学内メールで承認を行います。
-							</p>
+							<h2 className="text-lg font-bold text-gray-900 mb-1">在学生の入会</h2>
+							<p className="text-sm text-gray-500 flex-1">青山学院大学に現在在学中の方向けです。学内メールで承認を行います。</p>
 							<div className="mt-5">
-								<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-teal-300 group-hover:text-teal-700 transition">
-									青山学院大学
-								</span>
+								<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-teal-300 group-hover:text-teal-700 transition">青山学院大学</span>
 							</div>
 						</div>
 					</Link>
 
-					{/* お問い合わせカード */}
-					<Link href="/contact" className="group">
+					<Link href="/join/form/other" className="group">
 						<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-blue-200 transition">
 							<div className="flex items-start justify-between mb-5">
 								<div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-									<IconMail className="w-6 h-6" />
+									<IconUserPlus className="w-6 h-6" />
 								</div>
 								<span className="text-gray-300 group-hover:text-blue-400 transition text-xl leading-none">›</span>
 							</div>
-							<h2 className="text-lg font-bold text-gray-900 mb-1">お問い合わせ</h2>
-							<p className="text-sm text-gray-500 flex-1">
-								ご質問やご不明な点がある場合は、こちらからお問い合わせください。
-							</p>
+							<h2 className="text-lg font-bold text-gray-900 mb-1">他大学の方の入会</h2>
+							<p className="text-sm text-gray-500 flex-1">青山学院大学以外の大学に在学中の方向けです。</p>
 							<div className="mt-5">
-								<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-blue-300 group-hover:text-blue-700 transition">
-									お問い合わせフォーム
-								</span>
+								<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-blue-300 group-hover:text-blue-700 transition">他大学</span>
 							</div>
 						</div>
 					</Link>
 
-					{/* ログイン / 管理導線 */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-						<Link href="/login" className="group">
-							<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-gray-400 transition">
-								<div className="flex items-start justify-between mb-5">
-									<div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-										<IconLock className="w-6 h-6" />
-									</div>
-									<span className="text-gray-300 group-hover:text-gray-500 transition text-xl leading-none">›</span>
+					<Link href="/join/form/member-register" className="group">
+						<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-emerald-200 transition">
+							<div className="flex items-start justify-between mb-5">
+								<div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+									<IconClipboard className="w-6 h-6" />
 								</div>
-								<h2 className="text-lg font-bold text-gray-900 mb-1">管理者ログイン</h2>
-								<p className="text-sm text-gray-500 flex-1">
-									管理画面にアクセスするにはログインが必要です。
-								</p>
-								<div className="mt-5">
-									<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-gray-400 group-hover:text-gray-800 transition">
-										ログイン
-									</span>
-								</div>
+								<span className="text-gray-300 group-hover:text-emerald-400 transition text-xl leading-none">›</span>
 							</div>
-						</Link>
+							<h2 className="text-lg font-bold text-gray-900 mb-1">加入者用の名簿登録</h2>
+							<p className="text-sm text-gray-500 flex-1">すでにAPSに加入された方の名簿登録はこちらからどうぞ。</p>
+							<div className="mt-5">
+								<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-emerald-300 group-hover:text-emerald-700 transition">名簿登録</span>
+							</div>
+						</div>
+					</Link>
 
-						<Link href="/dashboard" className="group">
-							<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-purple-200 transition">
-								<div className="flex items-start justify-between mb-5">
-									<div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
-										<IconDashboard className="w-6 h-6" />
-									</div>
-									<span className="text-gray-300 group-hover:text-purple-400 transition text-xl leading-none">›</span>
+					<Link href="/dashboard" className="group">
+						<div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 h-full flex flex-col hover:shadow-md hover:border-purple-200 transition">
+							<div className="flex items-start justify-between mb-5">
+								<div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+									<IconDashboard className="w-6 h-6" />
 								</div>
-								<h2 className="text-lg font-bold text-gray-900 mb-1">ダッシュボード</h2>
-								<p className="text-sm text-gray-500 flex-1">
-									入会リクエストや学生プロフィールの一覧を確認・管理します。
-								</p>
-								<div className="mt-5">
-									<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-purple-300 group-hover:text-purple-700 transition">
-										管理者
-									</span>
-								</div>
+								<span className="text-gray-300 group-hover:text-purple-400 transition text-xl leading-none">›</span>
 							</div>
-						</Link>
-					</div>
+							<h2 className="text-lg font-bold text-gray-900 mb-1">ダッシュボード</h2>
+							<p className="text-sm text-gray-500 flex-1">入会リクエストや学生プロフィールの一覧を確認・管理します。</p>
+							<div className="mt-5">
+								<span className="inline-block rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 group-hover:border-purple-300 group-hover:text-purple-700 transition">管理者</span>
+							</div>
+						</div>
+					</Link>
 
 				</div>
-
-				{/* フッター */}
-				<p className="mt-14 text-center text-xs text-gray-400">
-					© 2026 Aoyama Piano Society (APS). All rights reserved.
-				</p>
 			</div>
 		</div>
 	);
 }
-

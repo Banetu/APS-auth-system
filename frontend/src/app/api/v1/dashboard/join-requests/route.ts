@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { query, ensureJoinRequestsTableExists } = await import('@/lib/db');
     await ensureJoinRequestsTableExists();
     const result = await query(
-      `SELECT id, email, name, form_type, status, metadata, created_at, updated_at
+      `SELECT id, email, name, form_type, status, metadata, university_name, created_at, updated_at
        FROM join_requests
        ORDER BY created_at DESC
        LIMIT 100`

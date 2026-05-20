@@ -12,6 +12,7 @@ interface JoinRequest {
 	form_type: string;
 	status: string;
 	metadata: Record<string, unknown> | null;
+	university_name: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -28,6 +29,7 @@ interface StudentProfile {
 
 interface VerifiedJoinProfile {
 	id: string;
+	universityName: string;
 	studentId: string;
 	name: string;
 	furigana: string;
@@ -80,6 +82,7 @@ export default function DashboardPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [verifyingId, setVerifyingId] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState<{ id: string; type: 'join' | 'contact'; label: string } | null>(null);
 
 	const getMetadataValue = (metadata: Record<string, unknown> | null, key: string): string => {
@@ -94,9 +97,10 @@ export default function DashboardPage() {
 	};
 
 	const verifiedJoinProfiles: VerifiedJoinProfile[] = joinRequests
-		.filter((req) => req.status === 'verified')
+		.filter((req) => req.status === 'verified' || req.status === 'member')
 		.map((req) => ({
 			id: req.id,
+			universityName: req.university_name?.trim() || '青山学院大学',
 			studentId: getMetadataValue(req.metadata, 'student_id'),
 			name: req.name || '-',
 			furigana: getMetadataValue(req.metadata, 'furigana'),
@@ -224,6 +228,26 @@ export default function DashboardPage() {
 		setSelectedContact(null);
 	};
 
+	const handleVerify = async (id: string, label: string) => {
+		if (!window.confirm(`「${label}」を認証済みにしてメールを送信しますか？`)) return;
+		setVerifyingId(id);
+		try {
+			const res = await fetch(`/api/v1/dashboard/join-requests/${id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status: 'verified' }),
+			});
+			if (!res.ok) throw new Error('認証済みへの変更に失敗しました');
+			setJoinRequests((prev) =>
+				prev.map((r) => r.id === id ? { ...r, status: 'verified' } : r)
+			);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : '失敗しました');
+		} finally {
+			setVerifyingId(null);
+		}
+	};
+
 	const handleDelete = async () => {
 		if (!confirmDelete) return;
 		const { id, type } = confirmDelete;
@@ -348,14 +372,26 @@ export default function DashboardPage() {
 												{new Date(req.created_at).toLocaleDateString('ja-JP')}
 											</td>
 											<td className="px-4 py-4 whitespace-nowrap text-right">
-												<button
-													type="button"
-													disabled={deletingId === req.id}
-													onClick={() => setConfirmDelete({ id: req.id, type: 'join', label: `${req.name}（${req.email}）` })}
-													className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
-												>
-													{deletingId === req.id ? '削除中…' : '削除'}
-												</button>
+												<div className="flex flex-col gap-1 items-end">
+													{req.status !== 'verified' && (
+														<button
+															type="button"
+															disabled={verifyingId === req.id}
+															onClick={() => handleVerify(req.id, `${req.name}（${req.email}）`)}
+															className="text-xs text-emerald-600 hover:text-emerald-800 hover:underline disabled:opacity-40"
+														>
+															{verifyingId === req.id ? '処理中…' : '認証済みにする'}
+														</button>
+													)}
+													<button
+														type="button"
+														disabled={deletingId === req.id}
+														onClick={() => setConfirmDelete({ id: req.id, type: 'join', label: `${req.name}（${req.email}）` })}
+														className="text-xs text-red-600 hover:text-red-800 hover:underline disabled:opacity-40"
+													>
+														{deletingId === req.id ? '削除中…' : '削除'}
+													</button>
+												</div>
 											</td>
 										</tr>
 									))
@@ -374,6 +410,7 @@ export default function DashboardPage() {
 						<table className="min-w-full divide-y divide-gray-200">
 							<thead className="bg-gray-50">
 								<tr>
+									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">大学名</th>
 									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">学生番号</th>
 									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">氏名</th>
 									<th className="px-7 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">フリガナ</th>
@@ -398,6 +435,7 @@ export default function DashboardPage() {
 								) : (
 									verifiedJoinProfiles.map((profile) => (
 										<tr key={profile.id} className="hover:bg-gray-50">
+											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.universityName}</td>
 											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.studentId}</td>
 											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.name}</td>
 											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-600">{profile.furigana}</td>

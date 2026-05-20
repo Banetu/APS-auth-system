@@ -102,6 +102,12 @@ export async function ensureJoinRequestsTableExists(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS join_requests_email_unique
     ON join_requests(email)
   `);
+
+  // university_name カラムの追加（既存テーブルへの移行）
+  await query(`
+    ALTER TABLE join_requests
+    ADD COLUMN IF NOT EXISTS university_name TEXT NULL
+  `);
 }
 
 export async function ensureJoinRequestOtpsTableExists(): Promise<void> {

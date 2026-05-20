@@ -2,22 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, ensureJoinRequestsTableExists } from '@/lib/db';
 import { sendLineNotification } from '@/lib/line';
 
-interface JoinRequestBody {
+interface MemberRegisterBody {
   email: string;
   name: string;
-  form_type: string;
-  university_name?: string;
+  university_name: string;
   metadata?: Record<string, unknown>;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as JoinRequestBody;
-    const { email, name, form_type, metadata, university_name } = body;
+    const body = (await request.json()) as MemberRegisterBody;
+    const { email, name, university_name, metadata } = body;
 
-    if (!email || !name || !form_type) {
+    if (!email || !name || !university_name) {
       return NextResponse.json(
-        { error: 'Missing required fields: email, name, form_type' },
+        { error: 'Missing required fields: email, name, university_name' },
         { status: 400 }
       );
     }
@@ -26,33 +25,31 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       `INSERT INTO join_requests (email, name, form_type, status, metadata, university_name)
-       VALUES ($1, $2, $3, 'pending', $4, $5)
+       VALUES ($1, $2, 'member-register', 'member', $3, $4)
        ON CONFLICT (email)
        DO UPDATE SET
          name = EXCLUDED.name,
-         form_type = EXCLUDED.form_type,
-         status = 'pending',
+         form_type = 'member-register',
+         status = 'member',
          metadata = EXCLUDED.metadata,
          university_name = EXCLUDED.university_name,
          updated_at = NOW()
        RETURNING id, email, name, form_type, status, metadata, created_at`,
-      [email, name, form_type, metadata ? JSON.stringify(metadata) : null, university_name ?? null]
+      [email, name, metadata ? JSON.stringify(metadata) : null, university_name]
     );
 
-    const row = result.rows[0];
-    const uniLabel = university_name ? `\n大学: ${university_name}` : '';
     await sendLineNotification(
-      `📋 入会申請が届きました\n氏名: ${name}${uniLabel}\nメール: ${email}`
+      `✅ 名簿登録が完了しました\n氏名: ${name}\n大学: ${university_name}\nメール: ${email}`
     );
 
     return NextResponse.json({
       status: 'success',
-      data: row,
+      data: result.rows[0],
     });
   } catch (error) {
-    console.error('Join request submission error:', error);
+    console.error('Member register error:', error);
     return NextResponse.json(
-      { error: 'Failed to submit join request' },
+      { error: 'Failed to register member' },
       { status: 500 }
     );
   }
