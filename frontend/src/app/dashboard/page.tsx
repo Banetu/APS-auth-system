@@ -79,6 +79,9 @@ interface DashboardSummary {
 	};
 }
 
+type ProfileSortKey = 'faculty' | 'studentId' | 'schoolYear' | 'name' | 'lineName';
+type SortDirection = 'asc' | 'desc';
+
 export default function DashboardPage() {
 	const { data: session, status } = useSession();
 	const router = useRouter();
@@ -100,6 +103,9 @@ export default function DashboardPage() {
 	const emptyEditForm: EditForm = { universityName: '', studentId: '', name: '', furigana: '', faculty: '', department: '', schoolYear: '', lineName: '', phoneNumber: '' };
 	const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
 	const [savingProfile, setSavingProfile] = useState(false);
+	const [aoyamaOnly, setAoyamaOnly] = useState(false);
+	const [profileSortKey, setProfileSortKey] = useState<ProfileSortKey>('faculty');
+	const [profileSortDirection, setProfileSortDirection] = useState<SortDirection>('asc');
 
 	const getMetadataValue = (metadata: Record<string, unknown> | null, key: string): string => {
 		if (!metadata) {
@@ -129,6 +135,45 @@ export default function DashboardPage() {
 			status: req.status,
 			createdAt: req.created_at,
 		}));
+
+	const normalizeSortValue = (value: string): string => {
+		if (value === '-') {
+			return '';
+		}
+		return value.trim();
+	};
+
+	const parseSchoolYear = (value: string): number => {
+		const normalized = normalizeSortValue(value);
+		const match = normalized.match(/\d+/);
+		if (!match) {
+			return Number.MAX_SAFE_INTEGER;
+		}
+		return Number(match[0]);
+	};
+
+	const filteredAndSortedProfiles = [...verifiedJoinProfiles]
+		.filter((profile) => !aoyamaOnly || profile.universityName === '青山学院大学')
+		.sort((a, b) => {
+			const direction = profileSortDirection === 'asc' ? 1 : -1;
+
+			if (profileSortKey === 'schoolYear') {
+				const aYear = parseSchoolYear(a.schoolYear);
+				const bYear = parseSchoolYear(b.schoolYear);
+				if (aYear !== bYear) {
+					return (aYear - bYear) * direction;
+				}
+			}
+
+			const aValue = normalizeSortValue(a[profileSortKey]);
+			const bValue = normalizeSortValue(b[profileSortKey]);
+			const compared = aValue.localeCompare(bValue, 'ja', { numeric: true, sensitivity: 'base' });
+			if (compared !== 0) {
+				return compared * direction;
+			}
+
+			return a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' });
+		});
 
 	useEffect(() => {
 		if (status === 'unauthenticated') {
@@ -487,8 +532,58 @@ export default function DashboardPage() {
 
 				{/* 学生プロフィール テーブル */}
 				<div className="mt-10 bg-white shadow rounded-xl overflow-hidden">
-					<div className="px-7 py-5 border-b border-gray-200">
+					<div className="px-7 py-5 border-b border-gray-200 space-y-4">
 						<h2 className="text-xl font-bold text-gray-900">学生プロフィール一覧（認証成功者）</h2>
+						<div className="flex flex-wrap items-center gap-4">
+							<label className="inline-flex items-center gap-2 text-sm text-gray-700">
+								<input
+									type="checkbox"
+									checked={aoyamaOnly}
+									onChange={(e) => setAoyamaOnly(e.target.checked)}
+									className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								/>
+								青山学院大学生のみ表示
+							</label>
+							<div className="flex items-center gap-2 text-sm">
+								<span className="text-gray-600">ソート</span>
+								<select
+									value={profileSortKey}
+									onChange={(e) => setProfileSortKey(e.target.value as ProfileSortKey)}
+									className="rounded border border-gray-300 px-2 py-1 text-sm text-gray-700"
+								>
+									<option value="faculty">学部順</option>
+									<option value="studentId">学生番号順</option>
+									<option value="schoolYear">学年順</option>
+									<option value="name">氏名順</option>
+									<option value="lineName">LINE名順</option>
+								</select>
+								<button
+									type="button"
+									onClick={() => setProfileSortDirection('asc')}
+									className={`rounded px-2.5 py-1 text-xs font-semibold ${
+										profileSortDirection === 'asc'
+											? 'bg-blue-600 text-white'
+											: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+									}`}
+								>
+									昇順
+								</button>
+								<button
+									type="button"
+									onClick={() => setProfileSortDirection('desc')}
+									className={`rounded px-2.5 py-1 text-xs font-semibold ${
+										profileSortDirection === 'desc'
+											? 'bg-blue-600 text-white'
+											: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+									}`}
+								>
+									降順
+								</button>
+							</div>
+							<span className="text-xs text-gray-500">
+								表示件数: {filteredAndSortedProfiles.length} / {verifiedJoinProfiles.length}
+							</span>
+						</div>
 					</div>
 					<div className="overflow-x-auto">
 						<table className="min-w-full divide-y divide-gray-200">
@@ -510,14 +605,14 @@ export default function DashboardPage() {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-gray-200">
-								{verifiedJoinProfiles.length === 0 ? (
+								{filteredAndSortedProfiles.length === 0 ? (
 									<tr>
 										<td colSpan={12} className="px-7 py-6 text-center text-gray-500">
 											データがありません
 										</td>
 									</tr>
 								) : (
-									verifiedJoinProfiles.map((profile) => (
+									filteredAndSortedProfiles.map((profile) => (
 										<tr key={profile.id} className="hover:bg-gray-50">
 											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.universityName}</td>
 											<td className="px-7 py-5 whitespace-nowrap text-sm text-gray-900">{profile.studentId}</td>
