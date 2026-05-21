@@ -52,10 +52,16 @@ export default function Home() {
 					<h1 className="text-2xl font-bold text-gray-900">入会フォーム</h1>
 					<p className="mt-1 text-sm text-gray-500">青山ピアノソサイエティ（APS）へのご入会はこちらからどうぞ。</p>
 				</div>
-				<div className="mb-10 rounded-xl bg-white border border-gray-200 px-5 py-3 text-sm text-gray-600 shadow-sm">
+				<div className="mb-4 rounded-xl bg-white border border-gray-200 px-5 py-3 text-sm text-gray-600 shadow-sm">
 					ご不明点やバグ報告がございましたら、
 					<Link href="/contact" className="text-teal-600 hover:underline mx-1">お問い合わせページ</Link>
 					をご利用ください。
+				</div>
+				<div className="mb-8">
+					<Link href="/guide" className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800 hover:bg-amber-100 transition font-medium">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+						初めてご利用の方へ：使い方ガイドを見る
+					</Link>
 				</div>
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
