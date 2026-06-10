@@ -34,3 +34,11 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 .idea/
+
+# Generated docs and assets
+docs/generated/
+
+# Legacy generated dashboard assets
+docs/dashboard-images/
+docs/dashboard-manual-print.html
+docs/dashboard-manual-print.pdf

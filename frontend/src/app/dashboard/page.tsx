@@ -80,6 +80,7 @@ interface DashboardSummary {
 }
 
 type ProfileSortKey = 'faculty' | 'studentId' | 'schoolYear' | 'name' | 'lineName';
+type JoinRequestSortKey = 'created_at' | 'name' | 'email';
 type SortDirection = 'asc' | 'desc';
 
 export default function DashboardPage() {
@@ -106,6 +107,8 @@ export default function DashboardPage() {
 	const [aoyamaOnly, setAoyamaOnly] = useState(false);
 	const [profileSortKey, setProfileSortKey] = useState<ProfileSortKey>('faculty');
 	const [profileSortDirection, setProfileSortDirection] = useState<SortDirection>('asc');
+	const [joinRequestSortKey, setJoinRequestSortKey] = useState<JoinRequestSortKey>('created_at');
+	const [joinRequestSortDirection, setJoinRequestSortDirection] = useState<SortDirection>('desc');
 
 	const getMetadataValue = (metadata: Record<string, unknown> | null, key: string): string => {
 		if (!metadata) {
@@ -174,6 +177,36 @@ export default function DashboardPage() {
 
 			return a.name.localeCompare(b.name, 'ja', { numeric: true, sensitivity: 'base' });
 		});
+
+	const sortedJoinRequests = [...joinRequests].sort((a, b) => {
+		const direction = joinRequestSortDirection === 'asc' ? 1 : -1;
+
+		if (joinRequestSortKey === 'created_at') {
+			const aDate = new Date(a.created_at).getTime();
+			const bDate = new Date(b.created_at).getTime();
+			return (aDate - bDate) * direction;
+		}
+
+		if (joinRequestSortKey === 'name') {
+			const aValue = (a.name || '').trim();
+			const bValue = (b.name || '').trim();
+			const compared = aValue.localeCompare(bValue, 'ja', { numeric: true, sensitivity: 'base' });
+			if (compared !== 0) {
+				return compared * direction;
+			}
+		}
+
+		if (joinRequestSortKey === 'email') {
+			const aValue = (a.email || '').trim();
+			const bValue = (b.email || '').trim();
+			const compared = aValue.localeCompare(bValue, 'ja', { numeric: true, sensitivity: 'base' });
+			if (compared !== 0) {
+				return compared * direction;
+			}
+		}
+
+		return 0;
+	});
 
 	useEffect(() => {
 		if (status === 'unauthenticated') {
@@ -450,6 +483,33 @@ export default function DashboardPage() {
 					<div className="px-6 py-4 border-b border-gray-200">
 						<h2 className="text-xl font-bold text-gray-900">入会リクエスト一覧</h2>
 					</div>
+					<div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+						<div className="flex items-center gap-4">
+							<span className="text-xs font-medium text-gray-700">作成日でソート:</span>
+							<button
+								type="button"
+								onClick={() => setJoinRequestSortDirection('asc')}
+								className={`rounded px-2.5 py-1 text-xs font-semibold ${
+									joinRequestSortDirection === 'asc'
+										? 'bg-blue-600 text-white'
+										: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+								}`}
+							>
+								昇順
+							</button>
+							<button
+								type="button"
+								onClick={() => setJoinRequestSortDirection('desc')}
+								className={`rounded px-2.5 py-1 text-xs font-semibold ${
+									joinRequestSortDirection === 'desc'
+										? 'bg-blue-600 text-white'
+										: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+								}`}
+							>
+								降順
+							</button>
+						</div>
+					</div>
 					<div className="overflow-x-auto">
 						<table className="min-w-full divide-y divide-gray-200">
 							<thead className="bg-gray-50">
@@ -468,14 +528,14 @@ export default function DashboardPage() {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-gray-200">
-								{joinRequests.length === 0 ? (
+								{sortedJoinRequests.length === 0 ? (
 									<tr>
 										<td colSpan={12} className="px-6 py-4 text-center text-gray-500">
 											データがありません
 										</td>
 									</tr>
 								) : (
-									joinRequests.map((req) => (
+									sortedJoinRequests.map((req) => (
 										<tr key={req.id} className="hover:bg-gray-50">
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getMetadataValue(req.metadata, 'student_id')}</td>
 											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{req.name}</td>
