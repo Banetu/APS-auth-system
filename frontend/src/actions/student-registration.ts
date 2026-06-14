@@ -7,6 +7,13 @@ export interface StudentProfile {
   phone: string;
 }
 
+export interface EligibilityCheckResult {
+  can_register: boolean;
+  is_pre_member: boolean;
+  is_paid: boolean;
+  reason?: string;
+}
+
 export async function submitStudentProfile(data: StudentProfile) {
   // Implementation would be added later
   console.log("submitStudentProfile called with:", data);
