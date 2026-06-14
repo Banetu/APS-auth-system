@@ -8,8 +8,6 @@ export interface SurveyAnswers {
   digitart_channels_other: string;
   circle_search_channels: string[];
   circle_search_other: string;
-  discord_invite_other: string;
-  discord_invite_source: string | null;
   interested_fields: string[];
   interested_fields_other: string;
   motivations: string[];
@@ -28,14 +26,6 @@ const OPTIONS_A = [
   "非公式SNS/ウェブサイト",
   "大学アプリ・掲示板",
   "先輩・友人からの紹介",
-  "その他",
-];
-
-const OPTIONS_DISCORD = [
-  "新歓イベント(QRコード)",
-  "新歓イベント(SNSにDM)",
-  "公式SNSでのDM",
-  "仮入会フォーム(ウェブサイト)",
   "その他",
 ];
 
@@ -65,8 +55,6 @@ export default function FormStep3Survey({ onBack, onComplete }: Props) {
     digitart_channels_other: "",
     circle_search_channels: [],
     circle_search_other: "",
-    discord_invite_other: "",
-    discord_invite_source: null,
     interested_fields: [],
     interested_fields_other: "",
     motivations: [],
@@ -84,11 +72,10 @@ export default function FormStep3Survey({ onBack, onComplete }: Props) {
 
   const digitartOtherMissing = answers.digitart_channels.includes("その他") && answers.digitart_channels_other.trim() === "";
   const circleOtherMissing = answers.circle_search_channels.includes("その他") && answers.circle_search_other.trim() === "";
-  const discordOtherMissing = answers.discord_invite_source === "その他" && answers.discord_invite_other.trim() === "";
   const fieldsOtherMissing = answers.interested_fields.includes("その他") && answers.interested_fields_other.trim() === "";
   const motivationsOtherMissing = answers.motivations.includes("その他") && answers.motivations_other.trim() === "";
 
-  const hasOtherErrors = digitartOtherMissing || circleOtherMissing || discordOtherMissing || fieldsOtherMissing || motivationsOtherMissing;
+  const hasOtherErrors = digitartOtherMissing || circleOtherMissing || fieldsOtherMissing || motivationsOtherMissing;
 
   const handleNext = () => {
     if (hasOtherErrors) return;
@@ -164,42 +151,9 @@ export default function FormStep3Survey({ onBack, onComplete }: Props) {
           </div>
         </section>
 
-        {/* 3. Discordへの参加経路 */}
+        {/* 3. 希望する活動分野 */}
         <section style={{ marginBottom: 20 }}>
-          <h3 className={styles.qTitle}>3. Discordへの参加経路</h3>
-          <p className={styles.qDesc}>Discordサーバーの招待はどこでもらいましたか？</p>
-          <div className={styles.optionList}>
-            {OPTIONS_DISCORD.map((opt) => (
-              <label key={opt} className={styles.optionLabel}>
-                <input
-                  type="radio"
-                  name="discord_source"
-                  checked={answers.discord_invite_source === opt}
-                  onChange={() => setAnswers({ ...answers, discord_invite_source: opt })}
-                />
-                <span className={styles.optionText}>{opt}</span>
-                {opt === "その他" && (
-                  <>
-                    <input
-                      placeholder="その他を記入"
-                      value={answers.discord_invite_other}
-                      onChange={(e) => setAnswers({ ...answers, discord_invite_other: e.target.value })}
-                      className={styles.optionOtherInline}
-                      aria-invalid={discordOtherMissing}
-                    />
-                    {discordOtherMissing && (
-                      <p className={styles.errorText} style={{ marginTop: 6 }}>「その他」を入力してください</p>
-                    )}
-                  </>
-                )}
-              </label>
-            ))}
-          </div>
-        </section>
-
-        {/* 4. 希望する活動分野 */}
-        <section style={{ marginBottom: 20 }}>
-          <h3 className={styles.qTitle}>4. 希望する活動分野</h3>
+          <h3 className={styles.qTitle}>3. 希望する活動分野</h3>
           <p className={styles.qDesc}>主に興味のある活動分野はなんですか？(複数選択可)</p>
           <div className={styles.optionList}>
             {OPTIONS_FIELDS.map((opt) => (
@@ -229,9 +183,9 @@ export default function FormStep3Survey({ onBack, onComplete }: Props) {
           </div>
         </section>
 
-        {/* 5. 活動目的 */}
+        {/* 4. 活動目的 */}
         <section style={{ marginBottom: 20 }}>
-          <h3 className={styles.qTitle}>5. 活動目的</h3>
+          <h3 className={styles.qTitle}>4. 活動目的</h3>
           <p className={styles.qDesc}>当サークルに参加する主な目的は何ですか？(複数選択可)</p>
           <div className={styles.optionList}>
             {OPTIONS_MOTIVATION.map((opt) => (

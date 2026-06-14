@@ -291,7 +291,7 @@ export default function ProspectiveStudentFormPage() {
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">4</span>
-                <span>検証成功後、Discord招待リンクが発行されます。リンクからサーバーに参加してください。</span>
+                <span>検証成功後、受付完了画面が表示されます。画面の案内に沿って次の手続きを確認してください。</span>
               </li>
             </ol>
           </div>

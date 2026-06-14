@@ -22,19 +22,6 @@ export default function FormStep1Eligibility({
         <div style={{ marginTop: "16px" }}>
           <div style={{ marginBottom: "12px" }}>
             <p>
-              <strong>Discord ログイン:</strong>{" "}
-              <span
-                style={{
-                  color: eligibility.is_discord_linked ? "#16a34a" : "#dc2626",
-                }}
-              >
-                {eligibility.is_discord_linked ? "✓ 確認済み" : "✗ 未リンク"}
-              </span>
-            </p>
-          </div>
-
-          <div style={{ marginBottom: "12px" }}>
-            <p>
               <strong>Pre-member 登録:</strong>{" "}
               <span
                 style={{

@@ -23,8 +23,8 @@ export default function NonMemberPage() {
 
           <div className={styles.heroCard} aria-hidden>
             <div className={styles.badge}>メンバー特典</div>
-            <h3 className={styles.cardTitle}>イベント参加・Discord招待</h3>
-            <p className={styles.cardText}>入会後、コミュニティ限定イベントや資料、Discordでの交流に参加できます。</p>
+            <h3 className={styles.cardTitle}>イベント参加・会員向け案内</h3>
+            <p className={styles.cardText}>入会後、コミュニティ限定イベントや資料など、会員向けの案内を受け取れます。</p>
             <div style={{ marginTop: 12 }}>
               <Link className={styles.secondary} href="/join/form">今すぐ仮入会</Link>
             </div>

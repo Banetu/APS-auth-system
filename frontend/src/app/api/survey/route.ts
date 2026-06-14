@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   try {
     const authorization = await getBackendAuthorizationHeader();
     if (!authorization) {
-      // Helpful debug info during development to diagnose missing session/discord link.
+      // Helpful debug info during development to diagnose missing session linkage.
       if (process.env.NODE_ENV !== "production") {
         const cookieStore = await cookies();
         const cookieList = cookieStore.getAll().map((c) => ({ name: c.name, value: c.value }));
