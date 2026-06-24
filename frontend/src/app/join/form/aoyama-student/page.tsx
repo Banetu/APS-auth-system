@@ -83,7 +83,15 @@ export default function AoyamaStudentFormPage() {
     const params = new URLSearchParams(window.location.search);
     const queryJoinRequestId = params.get("joinRequestId") || "";
     if (queryJoinRequestId) {
+      // URLにあればstateとsessionStorageの両方に保存
       setJoinRequestId(queryJoinRequestId);
+      sessionStorage.setItem("aps_join_request_id", queryJoinRequestId);
+    } else {
+      // URLにない場合はsessionStorageから復元（初回OAuth戻り時）
+      const stored = sessionStorage.getItem("aps_join_request_id") || "";
+      if (stored) {
+        setJoinRequestId(stored);
+      }
     }
   }, []);
 
@@ -102,6 +110,8 @@ export default function AoyamaStudentFormPage() {
       try {
         const result = await completeJoinDomainVerification({ joinRequestId });
         if (result.joined) {
+          // 認証完了後はsessionStorageのIDを削除
+          sessionStorage.removeItem("aps_join_request_id");
           setSubmitted(true);
         }
       } catch (err) {
@@ -361,6 +371,8 @@ export default function AoyamaStudentFormPage() {
                         metadata,
                       });
                       setJoinRequestId(response.id);
+                      // sessionStorageにも退避しておく（OAuth往復後のURL消失に備える）
+                      sessionStorage.setItem("aps_join_request_id", response.id);
                       router.push(
                         `/login?callbackUrl=${encodeURIComponent(`/join/form/aoyama-student?joinRequestId=${response.id}&email=${encodeURIComponent(autoCompletedEmail)}`)}&email=${encodeURIComponent(autoCompletedEmail)}`
                       );

@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     const joinRequestId = body.joinRequestId?.trim();
 
     if (!joinRequestId) {
+      console.error("[verify-domain] joinRequestId が未指定です。OAuth戻り時にURLパラメータが消失した可能性があります。");
       return NextResponse.json({ error: "joinRequestId が必要です" }, { status: 400 });
     }
 
