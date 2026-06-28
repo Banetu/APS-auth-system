@@ -11,6 +11,7 @@ out/
 # Environment
 .env.local
 .env*.local
+.env
 
 # Misc
 *.log
