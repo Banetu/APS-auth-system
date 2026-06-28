@@ -12,6 +12,8 @@ out/
 .env.local
 .env*.local
 .env
+.env.vercel.tmp
+*.vercel.tmp
 
 # Misc
 *.log
